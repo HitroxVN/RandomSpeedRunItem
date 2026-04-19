@@ -3,7 +3,9 @@ package me.HitroxVN.listener;
 import me.HitroxVN.Main;
 import me.HitroxVN.game.GameManager;
 import me.HitroxVN.game.PlayerSession;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -11,10 +13,12 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.player.PlayerPortalEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.bukkit.WorldCreator;
 
 public class ItemListener implements Listener {
 
@@ -48,20 +52,15 @@ public class ItemListener implements Listener {
         String editTitleRaw = Main.getInstance().getMessageManager().getLegacyString("gui.edit-title");
         String editTitlePrefix = editTitleRaw.contains("-") ? editTitleRaw.split("-")[0].trim() : editTitleRaw.trim();
 
-        // Chặn tương tác trong Roulette GUI
         if (title.equals(rouletteTitle)) {
             e.setCancelled(true);
             return;
         }
 
-        // Xử lý Pagination trong Edit GUI
         if (title.startsWith(editTitlePrefix)) {
-            // RawSlot < 54 là trong GUI rương
             if (e.getRawSlot() >= 45 && e.getRawSlot() < 54) {
                 e.setCancelled(true);
-
                 int currentPage = gameManager.getEditPage(player);
-
                 if (e.getRawSlot() == 45 && e.getCurrentItem() != null
                         && e.getCurrentItem().getType() == Material.ARROW) {
                     gameManager.saveDraft(player, e.getInventory());
@@ -93,7 +92,6 @@ public class ItemListener implements Listener {
 
         if (title.startsWith(editTitlePrefix)) {
             gameManager.saveDraft(player, e.getInventory());
-
             Main.getInstance().getServer().getScheduler().runTaskLater(Main.getInstance(), () -> {
                 if (player.getOpenInventory().getTopInventory()
                         .getType() != org.bukkit.event.inventory.InventoryType.CHEST ||
@@ -102,6 +100,63 @@ public class ItemListener implements Listener {
                 }
             }, 1L);
         }
+    }
+
+    @EventHandler
+    public void onPortal(PlayerPortalEvent event) {
+        Player player = event.getPlayer();
+        World currentWorld = player.getWorld();
+        if (!currentWorld.getName().startsWith("sr_player_"))
+            return;
+
+        String baseName = currentWorld.getName();
+        String rootName = baseName.replace("_nether", "").replace("_the_end", "");
+
+        World.Environment targetEnv;
+        if (event.getCause() == PlayerTeleportEvent.TeleportCause.NETHER_PORTAL) {
+            targetEnv = (currentWorld.getEnvironment() == World.Environment.NETHER) ? World.Environment.NORMAL
+                    : World.Environment.NETHER;
+        } else {
+            targetEnv = (currentWorld.getEnvironment() == World.Environment.THE_END) ? World.Environment.NORMAL
+                    : World.Environment.THE_END;
+        }
+
+        String targetName = rootName + (targetEnv == World.Environment.NETHER ? "_nether"
+                : (targetEnv == World.Environment.THE_END ? "_the_end" : ""));
+
+        World targetWorld = Bukkit.getWorld(targetName);
+        if (targetWorld == null) {
+            WorldCreator wc = new WorldCreator(targetName).environment(targetEnv);
+            targetWorld = wc.createWorld();
+            if (targetWorld != null) {
+                targetWorld.setAutoSave(false);
+                targetWorld.setKeepSpawnInMemory(false);
+            }
+        }
+
+        if (targetWorld != null && event.getTo() != null) {
+            event.getTo().setWorld(targetWorld);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerRespawn(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        PlayerSession session = gameManager.getSession(player);
+        if (session != null && !session.isFinished()) {
+            if (event.isBedSpawn() || event.isAnchorSpawn()) {
+                return;
+            }
+
+            if (session.getGameSpawnLocation() != null) {
+                event.setRespawnLocation(session.getGameSpawnLocation());
+            }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        gameManager.quitEarly(event.getPlayer());
     }
 
     private void checkItem(Player player, ItemStack item) {

@@ -19,31 +19,32 @@ public class WorldManager {
 
     public static CompletableFuture<Boolean> prepareWorldFolder(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            String templateName = Main.getInstance().getConfig().getString("worlds.template-name", "template_world");
-            File templateFolder = new File(Bukkit.getWorldContainer(), templateName);
-            File targetFolder = new File(Bukkit.getWorldContainer(), FOLDER_PREFIX + uuid.toString());
-
-            if (!templateFolder.exists()) {
-                Bukkit.getLogger().severe("[Speedrun] KHONG TIM THAY '" + templateName + "'!");
-                return false;
-            }
-
-            try {
-                if (targetFolder.exists()) {
-                    FileUtils.deleteDirectory(targetFolder);
+            String templateBase = Main.getInstance().getConfig().getString("worlds.template-name", "template_world");
+            
+            // Danh sach cac moi truong can copy
+            String[] envs = {"", "_nether", "_the_end"};
+            
+            for (String env : envs) {
+                File templateFolder = new File(Bukkit.getWorldContainer(), templateBase + env);
+                if (!templateFolder.exists()) {
+                    if (env.equals("")) return false; // Overworld bat buoc phai co
+                    continue; // Nether/End co the khong co thi bỏ qua
                 }
 
-                FileFilter filter = file -> {
-                    String name = file.getName();
-                    return !name.equals("session.lock") && !name.equals("uid.dat");
-                };
+                File targetFolder = new File(Bukkit.getWorldContainer(), FOLDER_PREFIX + uuid.toString() + env);
+                try {
+                    if (targetFolder.exists()) FileUtils.deleteDirectory(targetFolder);
 
-                FileUtils.copyDirectory(templateFolder, targetFolder, filter);
-                return true;
-            } catch (IOException e) {
-                Bukkit.getLogger().warning("Loi khi copy world folder: " + e.getMessage());
-                return false;
+                    FileFilter filter = file -> {
+                        String name = file.getName();
+                        return !name.equals("session.lock") && !name.equals("uid.dat");
+                    };
+                    FileUtils.copyDirectory(templateFolder, targetFolder, filter);
+                } catch (IOException e) {
+                    return false;
+                }
             }
+            return true;
         });
     }
 
@@ -91,24 +92,26 @@ public class WorldManager {
     }
 
     public static void deleteWorld(UUID uuid) {
-        String worldName = FOLDER_PREFIX + uuid.toString();
-        World world = Bukkit.getWorld(worldName);
+        String[] envs = {"", "_nether", "_the_end"};
+        
+        for (String env : envs) {
+            String worldName = FOLDER_PREFIX + uuid.toString() + env;
+            World world = Bukkit.getWorld(worldName);
 
-        if (world != null) {
-            world.getPlayers().forEach(p -> p.teleport(Bukkit.getWorlds().get(0).getSpawnLocation()));
-            Bukkit.unloadWorld(world, false);
-        }
-
-        CompletableFuture.runAsync(() -> {
-            File worldFolder = new File(Bukkit.getWorldContainer(), worldName);
-            try {
-                Thread.sleep(1500); 
-                if (worldFolder.exists()) {
-                    FileUtils.deleteDirectory(worldFolder);
-                }
-            } catch (Exception e) {
-                Bukkit.getLogger().warning("Khong the xoa folder " + worldName + ".");
+            if (world != null) {
+                world.getPlayers().forEach(p -> p.teleport(Bukkit.getWorlds().get(0).getSpawnLocation()));
+                Bukkit.unloadWorld(world, false);
             }
-        });
+
+            CompletableFuture.runAsync(() -> {
+                File worldFolder = new File(Bukkit.getWorldContainer(), worldName);
+                try {
+                    Thread.sleep(2000); // Đợi lâu hơn một chút để unload 3 world
+                    if (worldFolder.exists()) FileUtils.deleteDirectory(worldFolder);
+                } catch (Exception e) {
+                    // Ignore
+                }
+            });
+        }
     }
 }

@@ -14,6 +14,7 @@ public class PlayerSession {
     private final long personalBest;
     private boolean finished;
 
+    private Location gameSpawnLocation;
     private Location startLocation;
     private ItemStack[] savedInventory;
     private ItemStack[] savedArmor;
@@ -56,6 +57,14 @@ public class PlayerSession {
 
     public void setFinished(boolean finished) {
         this.finished = finished;
+    }
+
+    public Location getGameSpawnLocation() {
+        return gameSpawnLocation;
+    }
+
+    public void setGameSpawnLocation(Location gameSpawnLocation) {
+        this.gameSpawnLocation = gameSpawnLocation;
     }
 
     public Location getStartLocation() {

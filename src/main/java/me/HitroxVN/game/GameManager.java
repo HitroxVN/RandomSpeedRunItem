@@ -267,7 +267,9 @@ public class GameManager {
                 player.setLevel(0);
                 player.setHealth(20);
                 player.setFoodLevel(20);
-                player.teleport(WorldManager.getRandomLocation(world));
+                Location gameSpawn = WorldManager.getRandomLocation(world);
+                session.setGameSpawnLocation(gameSpawn);
+                player.teleport(gameSpawn);
                 session.setStartTime(System.currentTimeMillis());
 
                 player.sendMessage(Main.getInstance().getMessageManager().getComponent("messages.target-item", "{item}",
