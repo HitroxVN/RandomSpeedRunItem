@@ -52,7 +52,7 @@ public class ItemListener implements Listener {
         String editTitleRaw = Main.getInstance().getMessageManager().getLegacyString("gui.edit-title");
         String editTitlePrefix = editTitleRaw.contains("-") ? editTitleRaw.split("-")[0].trim() : editTitleRaw.trim();
 
-        if (title.equals(rouletteTitle)) {
+        if (title.equals(rouletteTitle) || title.startsWith("§0Top 10:")) {
             e.setCancelled(true);
             return;
         }

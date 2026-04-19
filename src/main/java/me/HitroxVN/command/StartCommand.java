@@ -1,5 +1,6 @@
 package me.HitroxVN.command;
 
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -30,7 +31,8 @@ public class StartCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 0) {
-            player.sendMessage("§cUsage: /" + label + " <start|reload>");
+            sender.sendMessage(
+                    Main.getInstance().getMessageManager().getComponent("messages.command-usage", "{label}", label));
             return true;
         }
 
@@ -42,14 +44,28 @@ public class StartCommand implements CommandExecutor, TabCompleter {
                 if (player.hasPermission("randomspeedrun.admin")) {
                     gameManager.openEditGUI(player, 0);
                 } else {
-                    player.sendMessage("§cBạn không có quyền thực hiện lệnh này!");
+                    player.sendMessage(Main.getInstance().getMessageManager().getComponent("messages.no-permission"));
                 }
                 break;
             case "reload":
                 reload(player);
                 break;
+            case "top":
+                if (args.length < 2) {
+                    sender.sendMessage(Main.getInstance().getMessageManager().getComponent("messages.command-usage",
+                            "{label}", label));
+                    return true;
+                }
+                Material target = Material.matchMaterial(args[1]);
+                if (target == null) {
+                    sender.sendMessage(Main.getInstance().getMessageManager().getComponent("messages.invalid-item"));
+                    return true;
+                }
+                gameManager.openLeaderboardGUI(player, target);
+                break;
             default:
-                player.sendMessage("§cUsage: /" + label + " <start|reload>");
+                sender.sendMessage(Main.getInstance().getMessageManager().getComponent("messages.command-usage",
+                        "{label}", label));
                 break;
         }
 
@@ -61,7 +77,7 @@ public class StartCommand implements CommandExecutor, TabCompleter {
         Main.getInstance().getMessageManager().reload();
         Main.getInstance().reloadStorage();
         gameManager.getItemManager().reload();
-        sender.sendMessage("§a[RandomSpeedRunItem] Đã reload cấu hình và vật phẩm thành công!");
+        sender.sendMessage(Main.getInstance().getMessageManager().getComponent("messages.reload-success"));
     }
 
     @Override
@@ -71,8 +87,15 @@ public class StartCommand implements CommandExecutor, TabCompleter {
             subcommands.add("start");
             subcommands.add("reload");
             subcommands.add("edit");
+            subcommands.add("top");
             return subcommands.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .collect(Collectors.toList());
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("top")) {
+            return gameManager.getItemManager().getItems().stream()
+                    .map(m -> m.name().toLowerCase())
+                    .filter(name -> name.startsWith(args[1].toLowerCase()))
                     .collect(Collectors.toList());
         }
         return new ArrayList<>();

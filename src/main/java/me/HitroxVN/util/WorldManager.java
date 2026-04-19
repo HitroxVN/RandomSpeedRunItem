@@ -59,31 +59,38 @@ public class WorldManager {
         return world;
     }
 
-    public static org.bukkit.Location getRandomLocation(World world) {
+    public static CompletableFuture<org.bukkit.Location> getRandomLocation(World world) {
+        CompletableFuture<org.bukkit.Location> future = new CompletableFuture<>();
         java.util.Random random = new java.util.Random();
         int range = Main.getInstance().getConfig().getInt("worlds.random-range", 5000);
-        
-        int x, z, y;
-        org.bukkit.block.Block block;
-        int attempts = 0;
 
-        while (attempts < 50) { // Gioi han 50 lan thu de tranh treo server
-            attempts++;
-            x = random.nextInt(range * 2) - range;
-            z = random.nextInt(range * 2) - range;
-            y = world.getHighestBlockYAt(x, z);
-            
-            block = world.getBlockAt(x, y, z);
+        attemptRandomLocation(world, random, range, 0, future);
+        return future;
+    }
+
+    private static void attemptRandomLocation(World world, java.util.Random random, int range, int attempts, CompletableFuture<org.bukkit.Location> future) {
+        if (attempts >= 50) {
+            future.complete(world.getSpawnLocation());
+            return;
+        }
+
+        int x = random.nextInt(range * 2) - range;
+        int z = random.nextInt(range * 2) - range;
+
+        world.getChunkAtAsync(x >> 4, z >> 4).thenAccept(chunk -> {
+            int y = world.getHighestBlockYAt(x, z);
+            org.bukkit.block.Block block = world.getBlockAt(x, y, z);
             Biome biome = world.getBiome(x, y, z);
 
-            // Kiem tra neu khong phai la nuoc va không phai Biome bien
             if (block.getType() != org.bukkit.Material.WATER && !isOcean(biome)) {
-                return new org.bukkit.Location(world, x + 0.5, y + 1, z + 0.5);
+                future.complete(new org.bukkit.Location(world, x + 0.5, y + 1, z + 0.5));
+            } else {
+                // Thử lại trên main thread để an toàn cho đệ quy
+                Bukkit.getScheduler().runTask(Main.getInstance(), () -> 
+                    attemptRandomLocation(world, random, range, attempts + 1, future)
+                );
             }
-        }
-        
-        // Neu sau 50 lan van khong tim thay (hiếm), tra ve vi tri spawn mac dinh
-        return world.getSpawnLocation();
+        });
     }
 
     private static boolean isOcean(Biome biome) {

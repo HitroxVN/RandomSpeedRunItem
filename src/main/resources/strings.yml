@@ -11,6 +11,10 @@ messages:
   world-init-error: "&cKhông thể khởi tạo thế giới speedrun. Hãy liên hệ Admin!"
   world-already-in: "&cBạn đã nằm trong danh sách thử thách hoặc hàng đợi!"
   edit-saved: "&a[RandomSpeedRun] Đã lưu danh sách vật phẩm mục tiêu."
+  no-permission: "&cBạn không có quyền thực hiện lệnh này!"
+  command-usage: "&cSử dụng: /{label} <start|top|edit|reload>"
+  invalid-item: "&cVật phẩm không hợp lệ!"
+  reload-success: "&a[RandomSpeedRunItem] Đã reload cấu hình và vật phẩm thành công!"
   
 actionbar:
   format: "&aMục tiêu: &e{item} &7| &aThời gian: &f{time}"
@@ -27,6 +31,12 @@ gui:
   edit-title: "&0Chỉnh sửa - Trang {page}"
   next-page: "&aTrang sau ->"
   prev-page: "&e<- Trang trước"
+  leaderboard-title: "&0Top 10: &1{item}"
+  leaderboard-header: "&bMục tiêu: &e{item}"
+  leaderboard-rank: "&6Hạng #{rank}: &f{player}"
+  leaderboard-time: "&7Thời gian: &a{time}"
+  my-record-title: "&bKỷ lục của bạn"
+  my-record-time: "&7Thời gian tốt nhất: &f{time}"
 
 countdown:
   "3": "&c&l3"

@@ -148,6 +148,32 @@ public class DatabaseManager {
         }
     }
 
+    public CompletableFuture<java.util.List<RecordData>> getTopRecords(Material item) {
+        return CompletableFuture.supplyAsync(() -> {
+            java.util.List<RecordData> list = new java.util.ArrayList<>();
+            String sql = "SELECT s.name, r.best_time " +
+                    "FROM rs_records r " +
+                    "JOIN rs_stats s ON r.uuid = s.uuid " +
+                    "WHERE r.item = ? " +
+                    "ORDER BY r.best_time ASC " +
+                    "LIMIT 10";
+            try (Connection conn = dataSource.getConnection();
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, item.name());
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    list.add(new RecordData(rs.getString("name"), rs.getLong("best_time")));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return list;
+        });
+    }
+
+    public static record RecordData(String playerName, long time) {
+    }
+
     public void close() {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();

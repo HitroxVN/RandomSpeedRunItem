@@ -31,7 +31,8 @@ public class Main extends JavaPlugin {
     }
 
     public void reloadStorage() {
-        if (databaseManager != null) databaseManager.close();
+        if (databaseManager != null)
+            databaseManager.close();
         this.databaseManager = new DatabaseManager();
     }
 
@@ -45,7 +46,8 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (databaseManager != null) databaseManager.close();
+        if (databaseManager != null)
+            databaseManager.close();
     }
 
     public static Main getInstance() {
