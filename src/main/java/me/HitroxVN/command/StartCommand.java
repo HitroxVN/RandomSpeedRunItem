@@ -59,9 +59,9 @@ public class StartCommand implements CommandExecutor, TabCompleter {
     private void reload(CommandSender sender) {
         Main.getInstance().reloadConfig();
         Main.getInstance().getMessageManager().reload();
-        Main.getInstance().getRecordManager().reload();
+        Main.getInstance().reloadStorage();
         gameManager.getItemManager().reload();
-        sender.sendMessage("§a[RandomSpeedRunItem] Đã reload cấu hình và item!");
+        sender.sendMessage("§a[RandomSpeedRunItem] Đã reload cấu hình và vật phẩm thành công!");
     }
 
     @Override

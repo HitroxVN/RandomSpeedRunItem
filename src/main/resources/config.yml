@@ -23,3 +23,14 @@ worlds:
   random-range: 5000                
   # Thời gian chờ sau khi thắng (giây)
   finish-delay: 5                   
+
+# Cấu hình lưu trữ dữ liệu
+database:
+# SQLITE hoặc MYSQL
+  type: "MYSQL"         
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "speedrun"
+    username: "root"
+    password: ""
