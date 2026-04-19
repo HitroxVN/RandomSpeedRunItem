@@ -1,10 +1,11 @@
 package me.HitroxVN.listener;
 
+import me.HitroxVN.game.GameManager;
+import me.HitroxVN.game.PlayerSession;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
-import me.HitroxVN.game.*;
 
 public class ItemListener implements Listener {
 
