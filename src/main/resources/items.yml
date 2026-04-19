@@ -1,6 +1,4 @@
 items:
-  - DIAMOND
-  - IRON_INGOT
-  - OAK_LOG
-  - BREAD
-  - ENDER_PEARL
+- OAK_LOG
+- DIRT
+- WHEAT_SEEDS

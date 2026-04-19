@@ -12,3 +12,14 @@ features:
   victory-sound: true
   victory-particles: true
   broadcast-winner: true
+
+# Cấu hình hệ thống thế giới biệt lập
+worlds:
+# Tên folder world mẫu
+  template-name: "template_world"  
+  # Số lượng world chạy tối đa cùng lúc  
+  max-concurrent: 30                
+  # Phạm vi ngẫu nhiên khi spawn (block)
+  random-range: 5000                
+  # Thời gian chờ sau khi thắng (giây)
+  finish-delay: 5                   

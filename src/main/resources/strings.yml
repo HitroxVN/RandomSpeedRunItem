@@ -4,6 +4,13 @@ messages:
   game-finished: "&aHoàn thành!"
   elapsed-time: "&eThời gian: &f{time}"
   finish-actionbar: "&aĐã hoàn thành trong: &f{time}"
+  queue-join: "&eHệ thống đang đầy (30/30). Bạn đã được đưa vào hàng đợi."
+  queue-position: "&fVị trí của bạn trong hàng đợi: &b#{pos}"
+  world-preparing: "&eĐang chuẩn bị thế giới riêng cho bạn..."
+  world-finishing-up: "&eĐang hoàn tất chuẩn bị thế giới, vui lòng đợi trong giây lát..."
+  world-init-error: "&cKhông thể khởi tạo thế giới speedrun. Hãy liên hệ Admin!"
+  world-already-in: "&cBạn đã nằm trong danh sách thử thách hoặc hàng đợi!"
+  edit-saved: "&a[RandomSpeedRun] Đã lưu danh sách vật phẩm mục tiêu."
   
 actionbar:
   format: "&aMục tiêu: &e{item} &7| &aThời gian: &f{time}"
@@ -16,6 +23,7 @@ scoreboard:
 
 gui:
   title: "&0Đang chọn vật phẩm..."
+  roulette-pointer: "&aVật phẩm mục tiêu ở đây"
   edit-title: "&0Chỉnh sửa - Trang {page}"
   next-page: "&aTrang sau ->"
   prev-page: "&e<- Trang trước"
