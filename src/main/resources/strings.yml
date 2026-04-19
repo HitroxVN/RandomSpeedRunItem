@@ -13,3 +13,19 @@ scoreboard:
   time: "&fThời gian: &a{time}"
   best: "&fKỷ lục: &b{time}"
   no-best: "Chưa có"
+
+gui:
+  title: "&0Đang chọn vật phẩm..."
+  edit-title: "&0Chỉnh sửa - Trang {page}"
+  next-page: "&aTrang sau ->"
+  prev-page: "&e<- Trang trước"
+
+countdown:
+  "3": "&c&l3"
+  "2": "&6&l2"
+  "1": "&e&l1"
+  "go": "&a&lGO!"
+  subtitle: "&fMục tiêu: &e{item}"
+
+broadcast:
+  finished: "&e[Speedrun] &fNgười chơi &b{player} &fđã hoàn thành thử thách &e{item} &ftrong &a{time}!"

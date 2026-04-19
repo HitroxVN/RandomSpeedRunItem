@@ -25,8 +25,8 @@ public class Main extends JavaPlugin {
         gameManager = new GameManager();
 
         StartCommand speedrunCommand = new StartCommand(gameManager);
-        getCommand("randomspeedrunitem").setExecutor(speedrunCommand);
-        getCommand("randomspeedrunitem").setTabCompleter(speedrunCommand);
+        getCommand("randomspeedrun").setExecutor(speedrunCommand);
+        getCommand("randomspeedrun").setTabCompleter(speedrunCommand);
 
         getServer().getPluginManager().registerEvents(new ItemListener(gameManager), this);
     }

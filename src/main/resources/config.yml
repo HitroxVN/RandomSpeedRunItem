@@ -2,4 +2,13 @@
 # display-type: ACTIONBAR hoặc SCOREBOARD hoặc BOTH
 settings:
   display-type: SCOREBOARD
-  scoreboard-title: "&b&lRANDOM SPEEDRUN ITEM"
+  scoreboard-title: "&b&lRANDOM SPEEDRUN"
+
+# Các tính năng nâng cao
+features:
+  random-gui: true
+  countdown: true
+  victory-fireworks: true
+  victory-sound: true
+  victory-particles: true
+  broadcast-winner: true

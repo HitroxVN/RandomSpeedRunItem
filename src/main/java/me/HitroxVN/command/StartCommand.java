@@ -38,6 +38,13 @@ public class StartCommand implements CommandExecutor, TabCompleter {
             case "start":
                 gameManager.start(player);
                 break;
+            case "edit":
+                if (player.hasPermission("randomspeedrun.admin")) {
+                    gameManager.openEditGUI(player, 0);
+                } else {
+                    player.sendMessage("§cBạn không có quyền thực hiện lệnh này!");
+                }
+                break;
             case "reload":
                 reload(player);
                 break;
@@ -63,6 +70,7 @@ public class StartCommand implements CommandExecutor, TabCompleter {
             List<String> subcommands = new ArrayList<>();
             subcommands.add("start");
             subcommands.add("reload");
+            subcommands.add("edit");
             return subcommands.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());

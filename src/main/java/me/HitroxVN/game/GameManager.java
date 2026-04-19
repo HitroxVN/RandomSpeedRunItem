@@ -2,21 +2,31 @@ package me.HitroxVN.game;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
+import net.kyori.adventure.title.Title;
+import org.bukkit.*;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scoreboard.*;
 import me.HitroxVN.util.TimeUtil;
 import me.HitroxVN.Main;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class GameManager {
 
     private final Map<UUID, PlayerSession> sessions = new HashMap<>();
     private final ItemManager itemManager = new ItemManager();
+
+    // lưu theo Player -> Trang -> Danh sách vật phẩm của trang đó
+    private final Map<UUID, Map<Integer, List<Material>>> editDrafts = new HashMap<>();
+    private final Map<UUID, Integer> editPages = new HashMap<>();
 
     public GameManager() {
         Bukkit.getScheduler().runTaskTimer(Main.getInstance(), this::updateDisplays, 20L, 20L);
@@ -24,26 +34,26 @@ public class GameManager {
 
     private void updateDisplays() {
         String displayType = Main.getInstance().getConfig().getString("settings.display-type", "BOTH");
-        
+
         for (Map.Entry<UUID, PlayerSession> entry : sessions.entrySet()) {
             PlayerSession session = entry.getValue();
-            if (session.isFinished()) continue;
+            if (session.isFinished())
+                continue;
 
             Player player = Bukkit.getPlayer(entry.getKey());
-            if (player == null || !player.isOnline()) continue;
+            if (player == null || !player.isOnline())
+                continue;
 
             long elapsed = System.currentTimeMillis() - session.getStartTime();
             String timeStr = TimeUtil.format(elapsed);
             String itemName = session.getTargetItem().name().replace("_", " ");
 
-            // ActionBar
             if (displayType.equalsIgnoreCase("ACTIONBAR") || displayType.equalsIgnoreCase("BOTH")) {
-                player.sendActionBar(Main.getInstance().getMessageManager().getComponent("actionbar.format", 
-                        "{item}", itemName, 
+                player.sendActionBar(Main.getInstance().getMessageManager().getComponent("actionbar.format",
+                        "{item}", itemName,
                         "{time}", timeStr));
             }
 
-            // Scoreboard
             if (displayType.equalsIgnoreCase("SCOREBOARD") || displayType.equalsIgnoreCase("BOTH")) {
                 updateScoreboard(player, session, itemName, timeStr);
             }
@@ -60,35 +70,155 @@ public class GameManager {
         Objective obj = board.getObjective("rsrun");
         if (obj == null) {
             String title = Main.getInstance().getConfig().getString("settings.scoreboard-title", "&b&lSPEEDRUN");
-            obj = board.registerNewObjective("rsrun", Criteria.DUMMY, LegacyComponentSerializer.legacyAmpersand().deserialize(title));
+            obj = board.registerNewObjective("rsrun", Criteria.DUMMY,
+                    LegacyComponentSerializer.legacyAmpersand().deserialize(title));
             obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         }
 
-        // Clear old scores (very simple way)
         for (String entry : board.getEntries()) {
             board.resetScores(entry);
         }
 
-        String pbStr = session.getPersonalBest() == -1 
-                ? Main.getInstance().getMessageManager().getLegacyString("scoreboard.no-best") 
+        String pbStr = session.getPersonalBest() == -1
+                ? Main.getInstance().getMessageManager().getLegacyString("scoreboard.no-best")
                 : TimeUtil.format(session.getPersonalBest());
 
         obj.getScore("§1").setScore(6);
         obj.getScore(Main.getInstance().getMessageManager().getLegacyString("scoreboard.target")).setScore(5);
         obj.getScore("§e" + itemName).setScore(4);
         obj.getScore("§2").setScore(3);
-        obj.getScore(Main.getInstance().getMessageManager().getLegacyString("scoreboard.time", "{time}", timeStr)).setScore(2);
-        obj.getScore(Main.getInstance().getMessageManager().getLegacyString("scoreboard.best", "{time}", pbStr)).setScore(1);
+        obj.getScore(Main.getInstance().getMessageManager().getLegacyString("scoreboard.time", "{time}", timeStr))
+                .setScore(2);
+        obj.getScore(Main.getInstance().getMessageManager().getLegacyString("scoreboard.best", "{time}", pbStr))
+                .setScore(1);
     }
 
     public void start(Player player) {
-        Material item = itemManager.getRandomItem();
-        long pb = Main.getInstance().getRecordManager().getBestTime(player.getUniqueId(), item);
+        if (sessions.containsKey(player.getUniqueId()) && !sessions.get(player.getUniqueId()).isFinished()) {
+            player.sendMessage("§cBạn đang trong một thử thách!");
+            return;
+        }
 
+        if (Main.getInstance().getConfig().getBoolean("features.random-gui")) {
+            openRandomGUI(player);
+        } else {
+            beginCountdownSequence(player, itemManager.getRandomItem());
+        }
+    }
+
+    private void openRandomGUI(Player player) {
+        String titleStr = Main.getInstance().getMessageManager().getLegacyString("gui.title");
+        Inventory gui = Bukkit.createInventory(null, 27,
+                LegacyComponentSerializer.legacySection().deserialize(titleStr));
+
+        ItemStack barrier = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta barrierMeta = barrier.getItemMeta();
+        barrierMeta.displayName(Component.empty());
+        barrier.setItemMeta(barrierMeta);
+
+        ItemStack pointer = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
+        ItemMeta pointerMeta = pointer.getItemMeta();
+        pointerMeta.displayName(Component.text("§aDanh sách vật phẩm"));
+        pointer.setItemMeta(pointerMeta);
+
+        for (int i = 0; i < 27; i++) {
+            if (i == 4 || i == 22)
+                gui.setItem(i, pointer);
+            else if (i < 9 || i > 17)
+                gui.setItem(i, barrier);
+        }
+
+        player.openInventory(gui);
+
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int ticks = 0;
+            int maxTicks = 30 + new Random().nextInt(20);
+            List<Material> cycle = new ArrayList<>();
+
+            @Override
+            public void run() {
+                if (!player.isOnline() || !player.getOpenInventory().getTitle().equals(titleStr)) {
+                    this.cancel();
+                    return;
+                }
+
+                ticks++;
+                cycle.add(0, itemManager.getRandomItem());
+                if (cycle.size() > 9)
+                    cycle.remove(9);
+
+                for (int i = 0; i < 9; i++) {
+                    if (i < cycle.size()) {
+                        gui.setItem(9 + i, new ItemStack(cycle.get(i)));
+                    }
+                }
+
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.5f, 1.5f);
+
+                if (ticks >= maxTicks) {
+                    Material winner = cycle.get(4);
+                    player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.5f);
+
+                    Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                        player.closeInventory();
+                        beginCountdownSequence(player, winner);
+                    }, 20L);
+
+                    this.cancel();
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, 3L);
+    }
+
+    private void beginCountdownSequence(Player player, Material item) {
+        if (Main.getInstance().getConfig().getBoolean("features.countdown")) {
+            startCountdown(player, item);
+        } else {
+            createSession(player, item);
+        }
+    }
+
+    private void startCountdown(Player player, Material item) {
+        String itemName = item.name().replace("_", " ");
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int count = 3;
+
+            @Override
+            public void run() {
+                if (!player.isOnline()) {
+                    this.cancel();
+                    return;
+                }
+
+                if (count > 0) {
+                    sendTitle(player, "countdown." + count, "countdown.subtitle", "{item}", itemName);
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1f);
+                } else if (count == 0) {
+                    sendTitle(player, "countdown.go", "countdown.subtitle", "{item}", itemName);
+                    player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f);
+                    createSession(player, item);
+                    this.cancel();
+                }
+                count--;
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, 20L);
+    }
+
+    private void sendTitle(Player player, String mainPath, String subPath, String... replacements) {
+        Component main = Main.getInstance().getMessageManager().getComponent(mainPath, replacements);
+        Component sub = Main.getInstance().getMessageManager().getComponent(subPath, replacements);
+        Title title = Title.title(main, sub,
+                Title.Times.times(Duration.ofMillis(100), Duration.ofMillis(800), Duration.ofMillis(100)));
+        player.showTitle(title);
+    }
+
+    private void createSession(Player player, Material item) {
+        long pb = Main.getInstance().getRecordManager().getBestTime(player.getUniqueId(), item);
         PlayerSession session = new PlayerSession(player.getUniqueId(), item, pb);
         sessions.put(player.getUniqueId(), session);
 
-        player.sendMessage(Main.getInstance().getMessageManager().getComponent("messages.target-item", "{item}", item.name()));
+        player.sendMessage(
+                Main.getInstance().getMessageManager().getComponent("messages.target-item", "{item}", item.name()));
         player.sendMessage(Main.getInstance().getMessageManager().getComponent("messages.game-started"));
     }
 
@@ -102,19 +232,150 @@ public class GameManager {
         long time = System.currentTimeMillis() - session.getStartTime();
         String timeStr = TimeUtil.format(time);
 
-        // Lưu kỷ lục
         Main.getInstance().getRecordManager().setBestTime(player.getUniqueId(), session.getTargetItem(), time);
 
         player.sendMessage(Main.getInstance().getMessageManager().getComponent("messages.game-finished"));
-        player.sendMessage(Main.getInstance().getMessageManager().getComponent("messages.elapsed-time", "{time}", timeStr));
-        player.sendActionBar(Main.getInstance().getMessageManager().getComponent("messages.finish-actionbar", "{time}", timeStr));
-        
-        // Reset Scoreboard sau 5 giây
+        player.sendMessage(
+                Main.getInstance().getMessageManager().getComponent("messages.elapsed-time", "{time}", timeStr));
+        player.sendActionBar(
+                Main.getInstance().getMessageManager().getComponent("messages.finish-actionbar", "{time}", timeStr));
+
+        applyVictoryEffects(player);
+
+        if (Main.getInstance().getConfig().getBoolean("features.broadcast-winner")) {
+            Bukkit.broadcast(Main.getInstance().getMessageManager().getComponent("broadcast.finished",
+                    "{player}", player.getName(),
+                    "{item}", session.getTargetItem().name().replace("_", " "),
+                    "{time}", timeStr));
+        }
+
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             if (player.isOnline()) {
                 player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
             }
         }, 100L);
+    }
+
+    private void applyVictoryEffects(Player player) {
+        FileConfiguration config = Main.getInstance().getConfig();
+
+        if (config.getBoolean("features.victory-sound")) {
+            player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+        }
+
+        if (config.getBoolean("features.victory-particles")) {
+            player.spawnParticle(Particle.FIREWORK, player.getLocation().add(0, 1, 0), 50, 0.5, 0.5, 0.5, 0.1);
+        }
+
+        if (config.getBoolean("features.victory-fireworks")) {
+            spawnFirework(player.getLocation());
+        }
+    }
+
+    private void spawnFirework(Location loc) {
+        Firework fw = loc.getWorld().spawn(loc, Firework.class);
+        FireworkMeta meta = fw.getFireworkMeta();
+        meta.addEffect(FireworkEffect.builder()
+                .withColor(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW)
+                .withFade(Color.WHITE)
+                .with(FireworkEffect.Type.BALL_LARGE)
+                .trail(true)
+                .flicker(true)
+                .build());
+        meta.setPower(1);
+        fw.setFireworkMeta(meta);
+        fw.detonate();
+    }
+
+    public void openEditGUI(Player player, int page) {
+        Map<Integer, List<Material>> playerDraft = editDrafts.get(player.getUniqueId());
+
+        if (playerDraft == null) {
+            playerDraft = new TreeMap<>();
+            List<Material> allItems = itemManager.getItems();
+            for (int i = 0; i < allItems.size(); i++) {
+                int p = i / 45;
+                playerDraft.computeIfAbsent(p, k -> new ArrayList<>()).add(allItems.get(i));
+            }
+            editDrafts.put(player.getUniqueId(), playerDraft);
+        }
+
+        editPages.put(player.getUniqueId(), page);
+
+        List<Material> currentPageItems = playerDraft.getOrDefault(page, new ArrayList<>());
+        String titleStr = Main.getInstance().getMessageManager().getLegacyString("gui.edit-title", "{page}",
+                String.valueOf(page + 1));
+        Inventory gui = Bukkit.createInventory(null, 54,
+                LegacyComponentSerializer.legacySection().deserialize(titleStr));
+
+        for (int i = 0; i < 45; i++) {
+            if (i < currentPageItems.size()) {
+                gui.setItem(i, new ItemStack(currentPageItems.get(i)));
+            }
+        }
+
+        ItemStack glass = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta glassMeta = glass.getItemMeta();
+        glassMeta.displayName(Component.empty());
+        glass.setItemMeta(glassMeta);
+        for (int i = 45; i < 54; i++)
+            gui.setItem(i, glass);
+
+        if (page > 0) {
+            ItemStack prev = new ItemStack(Material.ARROW);
+            ItemMeta prevMeta = prev.getItemMeta();
+            prevMeta.displayName(Main.getInstance().getMessageManager().getComponent("gui.prev-page"));
+            prev.setItemMeta(prevMeta);
+            gui.setItem(45, prev);
+        }
+
+        ItemStack next = new ItemStack(Material.ARROW);
+        ItemMeta nextMeta = next.getItemMeta();
+        nextMeta.displayName(Main.getInstance().getMessageManager().getComponent("gui.next-page"));
+        next.setItemMeta(nextMeta);
+        gui.setItem(53, next);
+
+        player.openInventory(gui);
+    }
+
+    public void saveDraft(Player player, Inventory inv) {
+        Map<Integer, List<Material>> playerDraft = editDrafts.get(player.getUniqueId());
+        if (playerDraft == null)
+            return;
+
+        int page = editPages.getOrDefault(player.getUniqueId(), 0);
+
+        List<Material> pageItems = new ArrayList<>();
+        for (int i = 0; i < 45; i++) {
+            ItemStack item = inv.getItem(i);
+            if (item != null && item.getType() != Material.AIR) {
+                pageItems.add(item.getType());
+            }
+        }
+
+        if (pageItems.isEmpty() && page > 0) {
+            playerDraft.remove(page);
+        } else {
+            playerDraft.put(page, pageItems);
+        }
+    }
+
+    public void finalizeEdit(Player player) {
+        Map<Integer, List<Material>> playerDraft = editDrafts.remove(player.getUniqueId());
+        if (playerDraft != null) {
+            // Dùng LinkedHashSet để giữ thứ tự nhưng không cho phép trùng lặp
+            Set<Material> uniqueItems = new LinkedHashSet<>();
+            for (List<Material> pageList : playerDraft.values()) {
+                uniqueItems.addAll(pageList);
+            }
+            itemManager.saveItems(new ArrayList<>(uniqueItems));
+            player.sendMessage("§a[RandomSpeedRun] Đã lưu danh sách vật phẩm mục tiêu.");
+        }
+        editPages.remove(player.getUniqueId());
+    }
+
+    public int getEditPage(Player player) {
+        return editPages.getOrDefault(player.getUniqueId(), 0);
     }
 
     public PlayerSession getSession(Player player) {

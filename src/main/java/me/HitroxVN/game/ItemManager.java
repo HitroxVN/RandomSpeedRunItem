@@ -38,4 +38,28 @@ public class ItemManager {
         if (items.isEmpty()) return Material.DIRT;
         return items.get(random.nextInt(items.size()));
     }
+
+    public List<Material> getItems() {
+        return new ArrayList<>(items);
+    }
+
+    public void saveItems(List<Material> newItems) {
+        this.items.clear();
+        this.items.addAll(newItems);
+        
+        File file = new File(Main.getInstance().getDataFolder(), "items.yml");
+        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+        
+        List<String> itemStrings = new ArrayList<>();
+        for (Material m : items) {
+            itemStrings.add(m.name());
+        }
+        
+        config.set("items", itemStrings);
+        try {
+            config.save(file);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
