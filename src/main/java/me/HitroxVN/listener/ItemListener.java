@@ -6,6 +6,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
 
 public class ItemListener implements Listener {
 
@@ -17,14 +20,31 @@ public class ItemListener implements Listener {
 
     @EventHandler
     public void onPickup(EntityPickupItemEvent e) {
-        if (!(e.getEntity() instanceof Player)) return;
+        if (!(e.getEntity() instanceof Player player)) return;
+        checkItem(player, e.getItem().getItemStack());
+    }
 
-        Player player = (Player) e.getEntity();
+    @EventHandler
+    public void onCraft(CraftItemEvent e) {
+        if (!(e.getWhoClicked() instanceof Player player)) return;
+        checkItem(player, e.getRecipe().getResult());
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent e) {
+        if (!(e.getWhoClicked() instanceof Player player)) return;
+
+        ItemStack clicked = e.getCurrentItem();
+        if (clicked == null) return;
+
+        checkItem(player, clicked);
+    }
+
+    private void checkItem(Player player, ItemStack item) {
         PlayerSession session = gameManager.getSession(player);
-
         if (session == null || session.isFinished()) return;
 
-        if (e.getItem().getItemStack().getType() == session.getTargetItem()) {
+        if (item.getType() == session.getTargetItem()) {
             gameManager.finish(player);
         }
     }

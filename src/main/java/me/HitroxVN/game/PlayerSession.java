@@ -10,12 +10,18 @@ public class PlayerSession {
     private Material targetItem;
     private long startTime;
     private boolean finished;
+    private long personalBest;
 
-    public PlayerSession(UUID uuid, Material targetItem) {
+    public PlayerSession(UUID uuid, Material targetItem, long personalBest) {
         this.uuid = uuid;
         this.targetItem = targetItem;
         this.startTime = System.currentTimeMillis();
         this.finished = false;
+        this.personalBest = personalBest;
+    }
+
+    public long getPersonalBest() {
+        return personalBest;
     }
 
     public Material getTargetItem() {

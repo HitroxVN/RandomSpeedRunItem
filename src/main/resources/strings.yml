@@ -1,0 +1,15 @@
+messages:
+  target-item: "&aItem của bạn: &e{item}"
+  game-started: "&aBắt đầu!"
+  game-finished: "&aHoàn thành!"
+  elapsed-time: "&eThời gian: &f{time}"
+  finish-actionbar: "&aĐã hoàn thành trong: &f{time}"
+  
+actionbar:
+  format: "&aMục tiêu: &e{item} &7| &aThời gian: &f{time}"
+
+scoreboard:
+  target: "&fMục tiêu:"
+  time: "&fThời gian: &a{time}"
+  best: "&fKỷ lục: &b{time}"
+  no-best: "Chưa có"

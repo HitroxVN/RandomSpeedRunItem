@@ -1,4 +1,5 @@
-items:
-  - DIAMOND
-  - IRON_INGOT
-  - GOLD_INGOT
+# Cấu hình hiển thị
+# display-type: ACTIONBAR hoặc SCOREBOARD hoặc BOTH
+settings:
+  display-type: SCOREBOARD
+  scoreboard-title: "&b&lRANDOM SPEEDRUN ITEM"

@@ -3,10 +3,16 @@ package me.HitroxVN.command;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import me.HitroxVN.game.GameManager;
+import me.HitroxVN.Main;
 
-public class StartCommand implements CommandExecutor {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class StartCommand implements CommandExecutor, TabCompleter {
 
     private final GameManager gameManager;
 
@@ -16,21 +22,51 @@ public class StartCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-
-        if (!(sender instanceof Player))
-            return true;
-
-        Player player = (Player) sender;
-
-        if (args.length == 0) {
-            player.sendMessage("§cUsage: /rspeedrunitem start");
+        if (!(sender instanceof Player player)) {
+            if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
+                reload(sender);
+            }
             return true;
         }
 
-        if (args[0].equalsIgnoreCase("start")) {
-            gameManager.start(player);
+        if (args.length == 0) {
+            player.sendMessage("§cUsage: /" + label + " <start|reload>");
+            return true;
+        }
+
+        switch (args[0].toLowerCase()) {
+            case "start":
+                gameManager.start(player);
+                break;
+            case "reload":
+                reload(player);
+                break;
+            default:
+                player.sendMessage("§cUsage: /" + label + " <start|reload>");
+                break;
         }
 
         return true;
+    }
+
+    private void reload(CommandSender sender) {
+        Main.getInstance().reloadConfig();
+        Main.getInstance().getMessageManager().reload();
+        Main.getInstance().getRecordManager().reload();
+        gameManager.getItemManager().reload();
+        sender.sendMessage("§a[RandomSpeedRunItem] Đã reload cấu hình và item!");
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
+        if (args.length == 1) {
+            List<String> subcommands = new ArrayList<>();
+            subcommands.add("start");
+            subcommands.add("reload");
+            return subcommands.stream()
+                    .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .collect(Collectors.toList());
+        }
+        return new ArrayList<>();
     }
 }

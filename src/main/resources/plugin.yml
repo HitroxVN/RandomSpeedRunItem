@@ -1,8 +1,10 @@
 name: RSpeedrunItem
 version: 1.0
 main: me.HitroxVN.Main
-api-version: 1.20
+api-version: 1.21
+author: HitroxVN
 
 commands:
-  rspeedrunitem:
-    description: Start speedrun
+  randomspeedrunitem:
+    description: Command for RandomSpeedRunItem
+    aliases: [rsitem]
